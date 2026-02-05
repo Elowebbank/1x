@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Elo Bank - Dashboard</title>
+
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+
+<style>
+  body { background: #f0f2f5; }
+  .screen { display: none; min-height: 100vh; padding: 40px 20px; position: relative; }
+  .screen.active { display: block; }
+  .card { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  .profile img { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; }
+  #spinner-overlay {
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background: rgba(255,255,255,0.7);
+    display:flex; justify-content:center; align-items:center;
+    z-index: 9999; display:none;
+  }
+  .password-wrapper { position: relative; }
+  .password-wrapper i {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    transform: translateY(-50%);
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- Spinner overlay -->
+<div id="spinner-overlay">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Loading...</span>
+  </div>
+</div>
+
+<!-- Login Screen -->
+<div id="login-screen" class="screen active d-flex justify-content-center align-items-center">
+  <div class="card p-4 p-md-5" style="max-width: 400px; width: 100%;">
+    <h2 class="text-center mb-4 text-primary">Elo Bank Login</h2>
+    <input id="email-input" type="email" class="form-control mb-3" placeholder="Email" />
+    <div class="password-wrapper mb-3">
+      <input id="password-input" type="password" class="form-control" placeholder="Password" />
+      <i id="toggle-password" class="bi bi-eye-fill"></i>
+    </div>
+    <p id="error-message" class="text-danger small"></p>
+    <button id="login-button" class="btn btn-primary w-100">Login</button>
+  </div>
+</div>
+
+<!-- Dashboard Screen -->
+<div id="dashboard-screen" class="screen container">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary">Dashboard</h2>
+    <button id="logout-button" class="btn btn-danger">Logout</button>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card p-3 text-center">
+        <div class="profile mb-3">
+          <img id="profile-photo" src="" alt="Profile" />
+        </div>
+        <h5 id="full-name">—</h5>
+        <p class="small text-muted" id="dob-gender">—</p>
+        <p class="small text-muted" id="nationality">—</p>
+      </div>
+    </div>
+
+    <div class="col-md-8">
+      <div class="card p-3 mb-4">
+        <h5>Account Info</h5>
+        <p><strong>Account Number:</strong> <span id="account-number">—</span></p>
+        <p><strong>Account Name:</strong> <span id="account-name">—</span></p>
+        <p><strong>Balance:</strong> <span id="available-balance">—</span></p>
+      </div>
+
+      <div class="card p-3">
+        <h5>Recent Transactions</h5>
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Description</th>
+                <th>Debit</th>
+                <th>Credit</th>
+              </tr>
+            </thead>
+            <tbody id="transactions-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+<!-- Supabase JS -->
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = 'https://zghvsnruaatznzgabxqv.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const loginScreen = document.getElementById('login-screen');
+const dashboardScreen = document.getElementById('dashboard-screen');
+const emailInput = document.getElementById('email-input');
+const passwordInput = document.getElementById('password-input');
+const loginBtn = document.getElementById('login-button');
+const logoutBtn = document.getElementById('logout-button');
+const errorMsg = document.getElementById('error-message');
+const spinner = document.getElementById('spinner-overlay');
+const togglePassword = document.getElementById('toggle-password');
+
+const fullNameEl = document.getElementById('full-name');
+const profilePhotoEl = document.getElementById('profile-photo');
+const dobGenderEl = document.getElementById('dob-gender');
+const nationalityEl = document.getElementById('nationality');
+const accNumberEl = document.getElementById('account-number');
+const accNameEl = document.getElementById('account-name');
+const availBalEl = document.getElementById('available-balance');
+const txBody = document.getElementById('transactions-body');
+
+function showError(msg) { errorMsg.textContent = msg; }
+function hideError() { errorMsg.textContent = ''; }
+function switchScreen(show, hide) { hide.classList.remove('active'); show.classList.add('active'); }
+function showSpinner() { spinner.style.display = 'flex'; }
+function hideSpinner() { spinner.style.display = 'none'; }
+
+togglePassword.addEventListener('click', () => {
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    togglePassword.classList.replace('bi-eye-fill','bi-eye-slash-fill');
+  } else {
+    passwordInput.type = 'password';
+    togglePassword.classList.replace('bi-eye-slash-fill','bi-eye-fill');
+  }
+});
+
+// Login handler
+loginBtn.addEventListener('click', async () => {
+  hideError();
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+  if (!email || !password) { showError('Email and password required'); return; }
+
+  showSpinner();
+  try {
+    // Try to sign in
+    let { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    // If user doesn't exist, create it automatically
+    if (error && error.message.includes('Invalid login credentials')) {
+      const { data: signupData, error: signupErr } = await supabase.auth.signUp({ email, password });
+      if (signupErr) throw signupErr;
+      data = signupData;
+      console.log('Test user created automatically.');
+    }
+
+    if (!data.user) throw new Error('Record Not Found. Try Again!');
+    switchScreen(dashboardScreen, loginScreen);
+    await loadDashboard(email);
+
+  } catch(err) {
+    showError(err.message || 'Login failed');
+    console.error(err);
+  }
+  hideSpinner();
+});
+
+// Logout
+logoutBtn.addEventListener('click', async () => {
+  await supabase.auth.signOut();
+  switchScreen(loginScreen, dashboardScreen);
+  emailInput.value = passwordInput.value = '';
+  hideError();
+});
+
+// Load dashboard
+async function loadDashboard(email) {
+  showSpinner();
+  try {
+    const { data: profile } = await supabase.from('customer_profiles').select('*').eq('email', email).single();
+    if (profile) {
+      fullNameEl.textContent = profile.full_name || '—';
+      profilePhotoEl.src = profile.profile_photo_url || '';
+      dobGenderEl.textContent = [profile.date_of_birth, profile.gender].filter(Boolean).join(' | ') || '—';
+      nationalityEl.textContent = profile.nationality || '—';
+    }
+
+    const { data: account } = await supabase.from('accounts').select('*').eq('email', email).single();
+    if (account) {
+      accNumberEl.textContent = account.account_number || '—';
+      accNameEl.textContent = account.account_name || '—';
+      availBalEl.textContent = Number(account.balance ?? 0).toFixed(2);
+    }
+
+    const { data: transactions } = await supabase.from('transactions').select('*').eq('email', email).order('transaction_date', { ascending: false }).limit(10);
+    txBody.innerHTML = '';
+    if (transactions?.length > 0) {
+      transactions.forEach(tx => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${tx.transaction_date || '—'}</td>
+                         <td>${tx.description || '—'}</td>
+                         <td>${tx.debit ?? '—'}</td>
+                         <td>${tx.credit ?? '—'}</td>`;
+        txBody.appendChild(row);
+      });
+    } else {
+      txBody.innerHTML = '<tr><td colspan="4">No transactions found</td></tr>';
+    }
+  } catch(err) {
+    console.error(err);
+  }
+  hideSpinner();
+}
+</script>
+
+</body>
+</html>
