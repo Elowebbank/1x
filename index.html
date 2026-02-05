@@ -1,99 +1,139 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Elo Bank - Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elo Bank - Cinematic Dashboard</title>
 
 <!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
 <style>
-  body { background: #f0f2f5; }
+  /* Base */
+  body { background: #0f111a; font-family: 'Segoe UI', sans-serif; color: #f0f2f5; }
   .screen { display: none; min-height: 100vh; padding: 40px 20px; position: relative; }
   .screen.active { display: block; }
-  .card { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-  .profile img { width: 120px; height: 120px; object-fit: cover; border-radius: 50%; }
+
+  /* Cards */
+  .card { border-radius: 15px; box-shadow: 0 8px 30px rgba(0,0,0,0.4); background: #1a1c2b; color: #f0f2f5; transition: all 0.4s ease; opacity:0; transform: translateY(20px);}
+  .card.show { opacity:1; transform: translateY(0); }
+  .card:hover { box-shadow: 0 12px 45px rgba(0,0,0,0.6); transform: translateY(-5px); }
+
+  /* Spinner */
   #spinner-overlay {
-    position: fixed;
-    top:0; left:0;
-    width:100%; height:100%;
-    background: rgba(255,255,255,0.7);
-    display:flex; justify-content:center; align-items:center;
+    position: fixed; top:0; left:0; width:100%; height:100%;
+    background: rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center;
     z-index: 9999; display:none;
   }
+
+  /* Login */
   .password-wrapper { position: relative; }
   .password-wrapper i {
-    position: absolute;
-    top: 50%;
-    right: 12px;
-    transform: translateY(-50%);
-    cursor: pointer;
+    position: absolute; top: 50%; right: 12px; transform: translateY(-50%); cursor: pointer;
+    color: #0d6efd;
   }
+
+  /* Welcome Card */
+  .welcome-card { 
+    background: linear-gradient(135deg, #0d6efd, #6610f2);
+    border-radius: 20px;
+    padding: 30px; 
+    text-align:center;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    opacity:0;
+    transform: translateY(-20px);
+    transition: all 0.7s ease;
+  }
+  .welcome-card.show { opacity:1; transform: translateY(0);}
+  .welcome-card h3, .welcome-card p { margin:5px 0; color:white; text-shadow:0 0 8px rgba(0,0,0,0.4); }
+
+  /* Buttons */
+  .action-btn { margin-top: 15px; font-weight:600; text-transform:uppercase; }
+  .btn-primary { background: linear-gradient(45deg,#0d6efd,#6610f2); border:none; box-shadow:0 4px 15px rgba(13,110,253,0.5); transition:all 0.3s ease; }
+  .btn-primary:hover { transform:scale(1.05); box-shadow:0 8px 30px rgba(13,110,253,0.7);}
+  .btn-success { background: linear-gradient(45deg,#198754,#20c997); border:none; box-shadow:0 4px 15px rgba(25,135,84,0.5); }
+  .btn-success:hover { transform:scale(1.05); box-shadow:0 8px 30px rgba(25,135,84,0.7);}
+  .btn-warning { background: linear-gradient(45deg,#ffc107,#fd7e14); border:none; box-shadow:0 4px 15px rgba(255,193,7,0.5); }
+  .btn-warning:hover { transform:scale(1.05); box-shadow:0 8px 30px rgba(255,193,7,0.7); }
+  .btn-danger { background: linear-gradient(45deg,#dc3545,#b02a37); border:none; box-shadow:0 4px 15px rgba(220,53,69,0.5); }
+  .btn-danger:hover { transform:scale(1.05); box-shadow:0 8px 30px rgba(220,53,69,0.7); }
+
+  /* Table */
+  table { color:#f0f2f5; }
+  thead th { color:#0d6efd; text-shadow:0 0 4px rgba(0,0,0,0.6);}
+  tbody tr { transition:all 0.3s ease; }
+  tbody tr:hover { background: rgba(255,255,255,0.1); transform:translateX(5px); }
+
+  /* Profile Image */
+  .profile img { width:120px; height:120px; object-fit:cover; border-radius:50%; border:4px solid #0d6efd; transition: all 0.5s ease; }
+  .profile img:hover { transform: scale(1.1) rotate(3deg); }
+
+  /* Error */
+  #error-message { color:#ff4d4f; }
 </style>
 </head>
 <body>
 
-<!-- Spinner overlay -->
+<!-- Spinner -->
 <div id="spinner-overlay">
-  <div class="spinner-border text-primary" role="status">
-    <span class="visually-hidden">Loading...</span>
-  </div>
+  <div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div>
 </div>
 
 <!-- Login Screen -->
 <div id="login-screen" class="screen active d-flex justify-content-center align-items-center">
-  <div class="card p-4 p-md-5" style="max-width: 400px; width: 100%;">
+  <div class="card p-4 p-md-5 show" style="max-width:400px; width:100%;">
     <h2 class="text-center mb-4 text-primary">Elo Bank Login</h2>
     <input id="email-input" type="email" class="form-control mb-3" placeholder="Email" />
     <div class="password-wrapper mb-3">
       <input id="password-input" type="password" class="form-control" placeholder="Password" />
       <i id="toggle-password" class="bi bi-eye-fill"></i>
     </div>
-    <p id="error-message" class="text-danger small"></p>
-    <button id="login-button" class="btn btn-primary w-100">Login</button>
+    <p id="error-message" class="small"></p>
+    <button id="login-button" class="btn btn-primary w-100 mt-2">Login</button>
   </div>
 </div>
 
-<!-- Dashboard Screen -->
+<!-- Dashboard -->
 <div id="dashboard-screen" class="screen container">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="text-primary">Dashboard</h2>
-    <button id="logout-button" class="btn btn-danger">Logout</button>
+
+  <!-- Welcome -->
+  <div class="welcome-card mb-4" id="welcome-card">
+    <h3 id="welcome-msg">Welcome, —</h3>
+    <p id="today-date">Today is —</p>
+    <p id="balance-msg">Your account balance is —</p>
   </div>
 
+  <!-- Actions -->
+  <div class="row mb-4 text-center">
+    <div class="col-md-3 col-6"><button class="btn btn-primary w-100 action-btn" onclick="showBankInfo('Transfer')">Transfer</button></div>
+    <div class="col-md-3 col-6"><button class="btn btn-success w-100 action-btn" onclick="showBankInfo('Withdrawal')">Withdrawal</button></div>
+    <div class="col-md-3 col-6"><button class="btn btn-warning w-100 action-btn" onclick="showBankInfo('ATM Card')">ATM Card Request</button></div>
+    <div class="col-md-3 col-6"><button id="logout-button" class="btn btn-danger w-100 action-btn">Logout</button></div>
+  </div>
+
+  <!-- Profile & Account -->
   <div class="row g-4">
     <div class="col-md-4">
-      <div class="card p-3 text-center">
-        <div class="profile mb-3">
-          <img id="profile-photo" src="" alt="Profile" />
-        </div>
+      <div class="card p-3" id="profile-card">
+        <div class="profile mb-3"><img id="profile-photo" src="" alt="Profile" /></div>
         <h5 id="full-name">—</h5>
         <p class="small text-muted" id="dob-gender">—</p>
         <p class="small text-muted" id="nationality">—</p>
       </div>
     </div>
-
     <div class="col-md-8">
-      <div class="card p-3 mb-4">
+      <div class="card p-3 mb-4" id="account-card">
         <h5>Account Info</h5>
         <p><strong>Account Number:</strong> <span id="account-number">—</span></p>
         <p><strong>Account Name:</strong> <span id="account-name">—</span></p>
         <p><strong>Balance:</strong> <span id="available-balance">—</span></p>
       </div>
-
-      <div class="card p-3">
+      <div class="card p-3" id="transactions-card">
         <h5>Recent Transactions</h5>
         <div class="table-responsive">
           <table class="table table-striped">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Debit</th>
-                <th>Credit</th>
-              </tr>
-            </thead>
+            <thead><tr><th>Date</th><th>Description</th><th>Debit</th><th>Credit</th></tr></thead>
             <tbody id="transactions-body"></tbody>
           </table>
         </div>
@@ -102,133 +142,137 @@
   </div>
 </div>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-
-<!-- Bootstrap Icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-
-<!-- Supabase JS -->
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const SUPABASE_URL = 'https://zfdymcnzlovqoseehckl.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmZHltY256bG92cW9zZWVoY2tsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzMDg1MzEsImV4cCI6MjA4NTg4NDUzMX0.cPlc5JCWSR1z_wjlUWIAzIjQzCnBZjRfFIEyyMcNUps';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Supabase
+const SUPABASE_URL='https://zfdymcnzlovqoseehckl.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpnaHZzbnJ1YWF0em56Z2FieHF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyOTc4MzksImV4cCI6MjA4NTg3MzgzOX0.UDn8wtxHitMqvpAO2h38Ml3KtTDtQpTBVYa6OXCeVvU';
+const supabase=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
-const loginScreen = document.getElementById('login-screen');
-const dashboardScreen = document.getElementById('dashboard-screen');
-const emailInput = document.getElementById('email-input');
-const passwordInput = document.getElementById('password-input');
-const loginBtn = document.getElementById('login-button');
-const logoutBtn = document.getElementById('logout-button');
-const errorMsg = document.getElementById('error-message');
-const spinner = document.getElementById('spinner-overlay');
-const togglePassword = document.getElementById('toggle-password');
+// DOM
+const loginScreen=document.getElementById('login-screen');
+const dashboardScreen=document.getElementById('dashboard-screen');
+const emailInput=document.getElementById('email-input');
+const passwordInput=document.getElementById('password-input');
+const loginBtn=document.getElementById('login-button');
+const logoutBtn=document.getElementById('logout-button');
+const errorMsg=document.getElementById('error-message');
+const spinner=document.getElementById('spinner-overlay');
+const togglePassword=document.getElementById('toggle-password');
 
-const fullNameEl = document.getElementById('full-name');
-const profilePhotoEl = document.getElementById('profile-photo');
-const dobGenderEl = document.getElementById('dob-gender');
-const nationalityEl = document.getElementById('nationality');
-const accNumberEl = document.getElementById('account-number');
-const accNameEl = document.getElementById('account-name');
-const availBalEl = document.getElementById('available-balance');
-const txBody = document.getElementById('transactions-body');
+const fullNameEl=document.getElementById('full-name');
+const profilePhotoEl=document.getElementById('profile-photo');
+const dobGenderEl=document.getElementById('dob-gender');
+const nationalityEl=document.getElementById('nationality');
+const accNumberEl=document.getElementById('account-number');
+const accNameEl=document.getElementById('account-name');
+const availBalEl=document.getElementById('available-balance');
+const txBody=document.getElementById('transactions-body');
+const welcomeMsgEl=document.getElementById('welcome-msg');
+const todayDateEl=document.getElementById('today-date');
+const balanceMsgEl=document.getElementById('balance-msg');
+const welcomeCard=document.getElementById('welcome-card');
+const profileCard=document.getElementById('profile-card');
+const accountCard=document.getElementById('account-card');
+const transactionsCard=document.getElementById('transactions-card');
 
-function showError(msg) { errorMsg.textContent = msg; }
-function hideError() { errorMsg.textContent = ''; }
-function switchScreen(show, hide) { hide.classList.remove('active'); show.classList.add('active'); }
-function showSpinner() { spinner.style.display = 'flex'; }
-function hideSpinner() { spinner.style.display = 'none'; }
+// Utils
+function showError(msg){ errorMsg.textContent=msg; }
+function hideError(){ errorMsg.textContent=''; }
+function switchScreen(show,hide){ hide.classList.remove('active'); show.classList.add('active'); showAnimations(); }
+function showSpinner(){ spinner.style.display='flex'; }
+function hideSpinner(){ spinner.style.display='none'; }
 
-togglePassword.addEventListener('click', () => {
-  if (passwordInput.type === 'password') {
-    passwordInput.type = 'text';
+function showAnimations(){
+  setTimeout(()=>welcomeCard.classList.add('show'),100);
+  setTimeout(()=>profileCard.classList.add('show'),300);
+  setTimeout(()=>accountCard.classList.add('show'),500);
+  setTimeout(()=>transactionsCard.classList.add('show'),700);
+}
+
+// Toggle password
+togglePassword.addEventListener('click',()=>{
+  if(passwordInput.type==='password'){
+    passwordInput.type='text';
     togglePassword.classList.replace('bi-eye-fill','bi-eye-slash-fill');
   } else {
-    passwordInput.type = 'password';
+    passwordInput.type='password';
     togglePassword.classList.replace('bi-eye-slash-fill','bi-eye-fill');
   }
 });
 
-// Login handler
-loginBtn.addEventListener('click', async () => {
+// Login
+loginBtn.addEventListener('click',async()=>{
   hideError();
-  const email = emailInput.value.trim();
-  const password = passwordInput.value.trim();
-  if (!email || !password) { showError('Email and password required'); return; }
-
+  const email=emailInput.value.trim();
+  const password=passwordInput.value.trim();
+  if(!email||!password){ showError('Email and password required'); return; }
   showSpinner();
-  try {
-    // Try to sign in
-    let { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    // If user doesn't exist, create it automatically
-    if (error && error.message.includes('Invalid login credentials')) {
-      const { data: signupData, error: signupErr } = await supabase.auth.signUp({ email, password });
-      if (signupErr) throw signupErr;
-      data = signupData;
-      console.log('Test user created automatically.');
-    }
-
-    if (!data.user) throw new Error('Record Not Found. Try Again!');
-    switchScreen(dashboardScreen, loginScreen);
+  try{
+    let { data,error }=await supabase.auth.signInWithPassword({ email,password });
+    if(error) throw error;
+    if(!data.user) throw new Error('Invalid login details. Visit bank or email support@EloBank.online');
+    switchScreen(dashboardScreen,loginScreen);
     await loadDashboard(email);
-
-  } catch(err) {
-    showError(err.message || 'Login failed');
-    console.error(err);
-  }
+  } catch(err){ showError(err.message||'Login failed. Visit bank or email support@EloBank.online'); }
   hideSpinner();
 });
 
 // Logout
-logoutBtn.addEventListener('click', async () => {
+logoutBtn.addEventListener('click',async()=>{
   await supabase.auth.signOut();
-  switchScreen(loginScreen, dashboardScreen);
-  emailInput.value = passwordInput.value = '';
+  switchScreen(loginScreen,dashboardScreen);
+  emailInput.value=passwordInput.value='';
   hideError();
 });
 
-// Load dashboard
-async function loadDashboard(email) {
+// Load Dashboard
+async function loadDashboard(email){
   showSpinner();
-  try {
-    const { data: profile } = await supabase.from('customer_profiles').select('*').eq('email', email).single();
-    if (profile) {
-      fullNameEl.textContent = profile.full_name || '—';
-      profilePhotoEl.src = profile.profile_photo_url || '';
-      dobGenderEl.textContent = [profile.date_of_birth, profile.gender].filter(Boolean).join(' | ') || '—';
-      nationalityEl.textContent = profile.nationality || '—';
+  try{
+    const { data: profile }=await supabase.from('customer_profiles').select('*').eq('email',email).single();
+    const { data: account }=await supabase.from('accounts').select('*').eq('email',email).single();
+    const { data: transactions }=await supabase.from('transactions').select('*').eq('email',email).order('transaction_date',{ascending:false}).limit(10);
+
+    if(profile){
+      fullNameEl.textContent=profile.full_name||'—';
+      profilePhotoEl.src=profile.profile_photo_url||'https://via.placeholder.com/120';
+      dobGenderEl.textContent=[profile.date_of_birth,profile.gender].filter(Boolean).join(' | ')||'—';
+      nationalityEl.textContent=profile.nationality||'—';
+      welcomeMsgEl.textContent=`Welcome, ${profile.full_name||'Customer'}`;
     }
 
-    const { data: account } = await supabase.from('accounts').select('*').eq('email', email).single();
-    if (account) {
-      accNumberEl.textContent = account.account_number || '—';
-      accNameEl.textContent = account.account_name || '—';
-      availBalEl.textContent = Number(account.balance ?? 0).toFixed(2);
+    if(account){
+      accNumberEl.textContent=account.account_number||'—';
+      accNameEl.textContent=account.account_name||'—';
+      availBalEl.textContent=Number(account.balance??0).toFixed(2);
+      balanceMsgEl.textContent=`Your account balance is $${Number(account.balance??0).toFixed(2)}`;
     }
 
-    const { data: transactions } = await supabase.from('transactions').select('*').eq('email', email).order('transaction_date', { ascending: false }).limit(10);
-    txBody.innerHTML = '';
-    if (transactions?.length > 0) {
-      transactions.forEach(tx => {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${tx.transaction_date || '—'}</td>
-                         <td>${tx.description || '—'}</td>
-                         <td>${tx.debit ?? '—'}</td>
-                         <td>${tx.credit ?? '—'}</td>`;
+    todayDateEl.textContent=`Today is ${new Date().toLocaleString()}`;
+
+    txBody.innerHTML='';
+    if(transactions?.length>0){
+      transactions.forEach((tx,i)=>{
+        const row=document.createElement('tr');
+        row.style.opacity=0;
+        row.style.transform='translateX(-20px)';
+        row.innerHTML=`<td>${tx.transaction_date||'—'}</td><td>${tx.description||'—'}</td><td>${tx.debit??'—'}</td><td>${tx.credit??'—'}</td>`;
         txBody.appendChild(row);
+        setTimeout(()=>{ row.style.transition='all 0.5s ease'; row.style.opacity=1; row.style.transform='translateX(0)'; }, i*100);
       });
-    } else {
-      txBody.innerHTML = '<tr><td colspan="4">No transactions found</td></tr>';
-    }
-  } catch(err) {
-    console.error(err);
-  }
+    } else txBody.innerHTML='<tr><td colspan="4">No transactions found</td></tr>';
+
+  } catch(err){ console.error(err); }
   hideSpinner();
 }
-</script>
 
+// Action buttons
+window.showBankInfo=function(action){
+  alert(`${action} feature is not available online. To open an account or perform this action, please visit the official Elo Bank branch or email support@EloBank.online`);
+}
+</script>
 </body>
 </html>
